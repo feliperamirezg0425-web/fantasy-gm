@@ -1,0 +1,16 @@
+# Render.com blueprint. Once this repo is connected to Render (see README "Deploying"
+# section), every `git push` automatically rebuilds and redeploys the API —
+# no manual redeploy step needed.
+services:
+  - type: web
+    name: fantasy-gm-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:///./fantasy_gm.db
+      - key: USE_MOCK_DATA
+        value: "true"
+    healthCheckPath: /health
