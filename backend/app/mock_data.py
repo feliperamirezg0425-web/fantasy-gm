@@ -233,7 +233,7 @@ def seed(db: Session):
     )
     db.add(settings)
 
-    team_names = ["Foster Freight", "Scaffold Squad", "Panama Ballers", "Tallahassee Titans",
+    team_names = ["Estrellita G", "Scaffold Squad", "Panama Ballers", "Tallahassee Titans",
                   "Gridiron Grifters", "Waiver Wire Warriors", "The Analytics", "Sunday Scaries",
                   "Boom or Bust", "Chain Movers", "Red Zone Raiders", "Late Round Legends"]
     teams = []
