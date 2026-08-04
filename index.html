@@ -3,343 +3,433 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fantasy GM</title>
+<title>Estrellita G — Fantasy GM</title>
 <!--
-  Once your backend is deployed (see README "Deploying"), you can hardcode
-  its URL below so the "API base" field defaults to it instead of localhost:
-    <input id="apiBase" ... value="https://your-app.onrender.com">
-  Just find the id="apiBase" input a few lines down and change its `value`.
+  All styling is built into this file on purpose — no external CSS libraries
+  that can fail to load. To change the backend URL, edit API_BASE below.
 -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css"></script>
 <style>
-  body { background:#0f1115; color:#e5e7eb; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  .card { background:#171a21; border:1px solid #262b36; border-radius:12px; }
-  .tab-btn.active { background:#2563eb; color:white; }
-  .badge-high { background:#065f46; color:#d1fae5; }
-  .badge-moderate { background:#78350f; color:#fde68a; }
-  .badge-low { background:#7f1d1d; color:#fecaca; }
-  .badge-verylow { background:#450a0a; color:#fca5a5; }
-  ::-webkit-scrollbar { width: 8px; height: 8px; }
-  ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+  :root {
+    --bg: #0b0d13; --panel: #141824; --panel2: #1a2030; --line: #232b3e;
+    --text: #e8ecf4; --muted: #8b94a8; --gold: #f5c542; --gold-dim: #b8932f;
+    --purple: #7c5cff; --green: #2dd4a0; --red: #ff5c72; --blue: #4da3ff;
+    --qb: #ff5c72; --rb: #2dd4a0; --wr: #4da3ff; --te: #f5a623; --k: #b48ce0; --dst: #8b94a8;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text);
+         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+         min-height: 100vh; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+
+  /* header */
+  .hero { background: linear-gradient(135deg, #171c2c 0%, #1d1533 60%, #141824 100%);
+          border: 1px solid var(--line); border-radius: 16px; padding: 22px 24px; margin-bottom: 16px;
+          position: relative; overflow: hidden; }
+  .hero::after { content: "⭐"; position: absolute; right: -10px; top: -18px; font-size: 120px; opacity: 0.06; }
+  .hero h1 { font-size: 26px; letter-spacing: 0.3px; }
+  .hero h1 .star { color: var(--gold); }
+  .hero .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .statusdot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px;
+               background: var(--muted); vertical-align: middle; }
+  .statusdot.on { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .statusdot.err { background: var(--red); }
+
+  /* tabs */
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .tab { background: var(--panel); border: 1px solid var(--line); color: var(--muted);
+         padding: 9px 16px; border-radius: 999px; font-size: 13.5px; cursor: pointer;
+         transition: all .15s; font-weight: 500; }
+  .tab:hover { color: var(--text); border-color: #35405c; }
+  .tab.active { background: linear-gradient(135deg, var(--purple), #5a3fd6); color: white;
+                border-color: transparent; box-shadow: 0 4px 14px rgba(124,92,255,.35); }
+
+  /* cards */
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+          padding: 18px; margin-bottom: 14px; }
+  .card h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 1.2px;
+             color: var(--muted); margin-bottom: 12px; font-weight: 600; }
+  .grid { display: grid; gap: 14px; }
+  @media (min-width: 720px) { .grid.cols3 { grid-template-columns: 1fr 1fr 1fr; }
+                               .grid.cols2 { grid-template-columns: 1fr 1fr; } }
+  .big { font-size: 30px; font-weight: 700; }
+  .big.gold { color: var(--gold); } .big.green { color: var(--green); } .big.blue { color: var(--blue); }
+  .label { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+  /* tables */
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th { text-align: left; color: var(--muted); font-size: 11px; text-transform: uppercase;
+       letter-spacing: .8px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  th.r, td.r { text-align: right; }
+  td { padding: 8px; border-bottom: 1px solid #1b2233; }
+  tr:hover td { background: #182036; }
+
+  /* position pills */
+  .pos { display: inline-block; min-width: 34px; text-align: center; padding: 2px 7px;
+         border-radius: 6px; font-size: 11px; font-weight: 700; letter-spacing: .5px; }
+  .pos.QB { background: rgba(255,92,114,.15); color: var(--qb); }
+  .pos.RB { background: rgba(45,212,160,.15); color: var(--rb); }
+  .pos.WR { background: rgba(77,163,255,.15); color: var(--wr); }
+  .pos.TE { background: rgba(245,166,35,.15); color: var(--te); }
+  .pos.K  { background: rgba(180,140,224,.15); color: var(--k); }
+  .pos.DST{ background: rgba(139,148,168,.15); color: var(--dst); }
+
+  /* round guide */
+  .round { background: var(--panel2); border: 1px solid var(--line); border-radius: 12px;
+           padding: 14px 16px; margin-bottom: 12px; }
+  .round .rhead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .round .rnum { font-size: 16px; font-weight: 700; }
+  .round .rnum .n { color: var(--gold); }
+  .round .strategy { color: var(--muted); font-size: 12.5px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; background: #10141f;
+          border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; margin: 3px 4px 3px 0;
+          font-size: 12.5px; }
+  .chip .v { color: var(--gold); font-weight: 600; }
+  .yourpick { border-left: 3px solid var(--gold); padding-left: 8px; margin-top: 8px;
+              color: var(--gold); font-size: 12.5px; }
+
+  /* news */
+  .news-item { border-left: 3px solid var(--purple); background: var(--panel2);
+               border-radius: 0 10px 10px 0; padding: 10px 14px; margin-bottom: 10px; }
+  .news-item.confirmed { border-left-color: var(--green); }
+  .news-item.rumor { border-left-color: var(--gold); }
+  .news-item .nh { font-weight: 600; font-size: 14px; }
+  .news-item .nb { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
+  .news-item .nt { color: #5c6579; font-size: 11px; margin-top: 5px; }
+  .tag { font-size: 10px; padding: 2px 7px; border-radius: 5px; font-weight: 700; letter-spacing: .5px;
+         vertical-align: middle; margin-left: 6px; }
+  .tag.ok { background: rgba(45,212,160,.15); color: var(--green); }
+  .tag.rumor { background: rgba(245,197,66,.15); color: var(--gold); }
+
+  /* misc */
+  button.btn { background: linear-gradient(135deg, var(--purple), #5a3fd6); color: white; border: none;
+               padding: 9px 18px; border-radius: 9px; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+  button.btn:hover { filter: brightness(1.12); }
+  button.btn.ghost { background: var(--panel2); border: 1px solid var(--line); color: var(--text); }
+  input, select { background: #10141f; border: 1px solid var(--line); color: var(--text);
+                   border-radius: 8px; padding: 8px 10px; font-size: 13.5px; }
+  .loading { text-align: center; padding: 40px 20px; color: var(--muted); }
+  .spinner { width: 34px; height: 34px; border: 3px solid var(--line); border-top-color: var(--gold);
+             border-radius: 50%; margin: 0 auto 14px; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .wake { color: var(--gold); font-size: 12.5px; margin-top: 8px; }
+  .footer-meta { color: #5c6579; font-size: 11.5px; margin-top: 12px; padding-top: 10px;
+                 border-top: 1px solid var(--line); line-height: 1.7; }
+  .err { background: rgba(255,92,114,.1); border: 1px solid rgba(255,92,114,.3); color: var(--red);
+         border-radius: 10px; padding: 14px; font-size: 13.5px; }
+  .tierbreak td { border-bottom: 2px dashed var(--gold-dim) !important; }
 </style>
 </head>
-<body class="min-h-screen">
+<body>
+<div class="wrap">
 
-<div class="max-w-6xl mx-auto p-4">
-
-  <header class="flex items-center justify-between mb-6">
-    <div>
-      <h1 class="text-2xl font-bold text-white">🏈 Fantasy GM</h1>
-      <p class="text-sm text-gray-400">Decision-support MVP · mock data mode</p>
+  <div class="hero">
+    <h1><span class="star">⭐</span> Estrellita G</h1>
+    <div class="sub">
+      <span id="apiDot" class="statusdot"></span><span id="apiStatus">Connecting to your Fantasy GM engine…</span>
+      · 12-team · Full PPR · mock data mode
     </div>
-    <div class="flex items-center gap-3 text-sm">
-      <label class="text-gray-400">API base</label>
-      <input id="apiBase" class="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs w-56"
-             value="https://fantasy-gm-api-bfm3.onrender.com">
-      <label class="text-gray-400">League</label>
-      <input id="leagueId" type="number" value="1" class="bg-gray-800 border border-gray-700 rounded px-2 py-1 w-14 text-xs">
-      <label class="text-gray-400">Team</label>
-      <input id="teamId" type="number" value="1" class="bg-gray-800 border border-gray-700 rounded px-2 py-1 w-14 text-xs">
-      <label class="text-gray-400">Wk</label>
-      <input id="week" type="number" value="1" class="bg-gray-800 border border-gray-700 rounded px-2 py-1 w-12 text-xs">
-    </div>
-  </header>
+  </div>
 
-  <nav class="flex gap-2 mb-6 flex-wrap">
-    <button class="tab-btn active px-4 py-2 rounded-lg text-sm font-medium bg-gray-800" data-tab="dashboard">Dashboard</button>
-    <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-800" data-tab="draft">Draft Room</button>
-    <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-800" data-tab="lineup">Start/Sit</button>
-    <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-800" data-tab="waiver">Waiver Wire</button>
-    <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-800" data-tab="trade">Trade Analyzer</button>
-    <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-800" data-tab="league">League Intel</button>
-  </nav>
+  <div class="tabs">
+    <button class="tab active" data-tab="dashboard">🏠 My Team</button>
+    <button class="tab" data-tab="draftguide">🎯 Draft Guide</button>
+    <button class="tab" data-tab="bigboard">📋 Big Board</button>
+    <button class="tab" data-tab="lineup">🏈 Start/Sit</button>
+    <button class="tab" data-tab="news">📰 Live News</button>
+    <button class="tab" data-tab="league">🏆 League</button>
+  </div>
 
-  <div id="content"></div>
+  <div id="content"><div class="loading"><div class="spinner"></div>Loading…</div></div>
 </div>
 
 <script>
-const $ = sel => document.querySelector(sel);
-const apiBase = () => $('#apiBase').value.replace(/\/$/, '');
-const leagueId = () => $('#leagueId').value;
-const teamId = () => $('#teamId').value;
-const week = () => $('#week').value;
-const SEASON = 2026;
+// ======= CONFIG — change this if your backend URL ever changes =======
+const API_BASE = "https://fantasy-gm-api-bfm3.onrender.com";
+const LEAGUE_ID = 1, TEAM_ID = 1, SEASON = 2026, WEEK = 1, NUM_TEAMS = 12;
+// Your draft slot (1-12). Change this to your real draft position when you know it:
+const MY_DRAFT_SLOT = 5;
+// =====================================================================
 
-async function api(path, opts) {
-  try {
-    const res = await fetch(apiBase() + path, opts);
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`${res.status}: ${text}`);
+const $ = s => document.querySelector(s);
+let bigBoardCache = null;
+
+function setApiStatus(ok, msg) {
+  const dot = $('#apiDot');
+  dot.className = 'statusdot ' + (ok === true ? 'on' : ok === false ? 'err' : '');
+  $('#apiStatus').textContent = msg;
+}
+
+async function api(path, opts, retries = 2) {
+  // Render free tier sleeps when idle — first request can take ~30-50s. Retry patiently.
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(API_BASE + path, opts);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      setApiStatus(true, "Engine online");
+      return await res.json();
+    } catch (e) {
+      if (attempt < retries) {
+        setApiStatus(null, "Waking up the engine (free hosting naps when idle — up to a minute)…");
+        await new Promise(r => setTimeout(r, 12000));
+      } else {
+        setApiStatus(false, "Engine unreachable");
+        return { _error: e.message };
+      }
     }
-    return await res.json();
-  } catch (e) {
-    return { error: e.message };
   }
 }
 
-function confidenceBadge(c) {
-  const cls = { "Very High": "badge-high", "High": "badge-high", "Moderate": "badge-moderate",
-                "Low": "badge-low", "Very Low": "badge-verylow" }[c] || "badge-moderate";
-  return `<span class="text-xs px-2 py-0.5 rounded-full ${cls}">${c || "Unknown"} confidence</span>`;
+function loadingBox(msg) {
+  return `<div class="loading"><div class="spinner"></div>${msg}
+          <div class="wake">First load can take up to a minute while the free server wakes up ☕</div></div>`;
 }
+function errBox(msg) {
+  return `<div class="err"><b>Couldn't reach the engine.</b> (${msg})<br>
+          It may still be waking up — wait 30 seconds and click the tab again.</div>`;
+}
+function posPill(p) { return `<span class="pos ${p}">${p}</span>`; }
 
-function envelopeFooter(d) {
+function metaFooter(d) {
   if (!d) return '';
-  const assumptions = (d.assumptions || []).map(a => `<li>${a}</li>`).join('');
-  const missing = (d.missing_or_uncertain || []).map(a => `<li>${a}</li>`).join('');
-  return `
-    <div class="mt-4 pt-3 border-t border-gray-800 text-xs text-gray-500">
-      <div class="flex flex-wrap gap-3 mb-2">
-        ${confidenceBadge(d.confidence)}
-        <span>model: ${d.model_version || 'n/a'}</span>
-        <span>source: ${d.data_source || 'n/a'}</span>
-        <span>as of: ${d.data_timestamp ? new Date(d.data_timestamp).toLocaleString() : 'n/a'}</span>
-      </div>
-      ${assumptions ? `<div class="mb-1"><b>Assumptions:</b><ul class="list-disc ml-4">${assumptions}</ul></div>` : ''}
-      ${missing ? `<div><b>Missing/uncertain:</b><ul class="list-disc ml-4">${missing}</ul></div>` : ''}
-      <div class="mt-2 italic text-gray-600">${d.disclaimer || 'Entertainment and decision-support only. No outcome is guaranteed.'}</div>
-    </div>`;
+  return `<div class="footer-meta">
+    Confidence: <b>${d.confidence || '—'}</b> · model ${d.model_version || '—'} · source: ${d.data_source || '—'}
+    · ${d.data_timestamp ? new Date(d.data_timestamp).toLocaleString() : ''}<br>
+    ${d.disclaimer || ''}</div>`;
 }
 
-function errorCard(msg) {
-  return `<div class="card p-4 text-red-400 text-sm">⚠ ${msg}<br><span class="text-gray-500">Is the API running at ${apiBase()}? Try: <code>uvicorn app.main:app --reload</code> after <code>python -m app.seed_mock_data</code>.</span></div>`;
-}
-
-// ---------- Dashboard ----------
+// ---------------- My Team ----------------
 async function renderDashboard() {
-  $('#content').innerHTML = `<div class="text-gray-400 text-sm">Loading dashboard…</div>`;
-  const d = await api(`/api/league/${leagueId()}/dashboard?team_id=${teamId()}&season=${SEASON}&week=${week()}`);
-  if (d.error) { $('#content').innerHTML = errorCard(d.error); return; }
+  $('#content').innerHTML = loadingBox("Loading your team…");
+  const d = await api(`/api/league/${LEAGUE_ID}/dashboard?team_id=${TEAM_ID}&season=${SEASON}&week=${WEEK}`);
+  if (d._error) { $('#content').innerHTML = errBox(d._error); return; }
   const rec = d.recommendation;
-  const lineupRows = (rec.recommended_lineup || []).map(p => `
-    <tr class="border-b border-gray-800">
-      <td class="py-1 pr-3 text-gray-400">${p.slot}</td>
-      <td class="py-1 pr-3">${p.name}</td>
-      <td class="py-1 pr-3 text-gray-500">${p.position}</td>
-      <td class="py-1 text-right">${p.median?.toFixed(1) ?? '-'}</td>
-    </tr>`).join('');
-  const alerts = (rec.urgent_alerts || []).map(a => `
-    <div class="p-2 rounded bg-gray-800 mb-2 text-sm">
-      <div class="font-medium">${a.headline}</div>
-      <div class="text-gray-400 text-xs">${a.body}</div>
-    </div>`).join('') || `<div class="text-gray-500 text-sm">No urgent alerts right now.</div>`;
-
+  const rows = (rec.recommended_lineup || []).map(p => `
+    <tr><td style="color:var(--muted)">${p.slot}</td><td><b>${p.name}</b></td>
+    <td>${posPill(p.position)}</td><td class="r">${p.median?.toFixed(1) ?? '—'}</td></tr>`).join('');
+  const alerts = (rec.urgent_alerts || []).slice(0, 5).map(a => `
+    <div class="news-item"><div class="nh">${a.headline}</div><div class="nb">${a.body}</div></div>`).join('')
+    || `<div style="color:var(--muted);font-size:13px">All quiet — no urgent alerts. ⭐</div>`;
   $('#content').innerHTML = `
-    <div class="grid md:grid-cols-3 gap-4">
-      <div class="card p-4 md:col-span-1">
-        <div class="text-gray-400 text-xs uppercase mb-1">Team</div>
-        <div class="text-xl font-semibold">${rec.team_name}</div>
-        <div class="text-3xl font-bold mt-3 text-blue-400">${rec.projected_lineup_score_median ?? '-'}</div>
-        <div class="text-gray-500 text-xs">projected lineup score (median)</div>
-      </div>
-      <div class="card p-4 md:col-span-2">
-        <div class="text-gray-400 text-xs uppercase mb-2">Urgent alerts</div>
-        ${alerts}
-      </div>
+    <div class="grid cols3">
+      <div class="card"><h3>Team</h3><div class="big gold">${rec.team_name}</div><div class="label">your squad</div></div>
+      <div class="card"><h3>Projected score</h3><div class="big green">${rec.projected_lineup_score_median ?? '—'}</div><div class="label">median, this week</div></div>
+      <div class="card"><h3>Roster status</h3><div class="big blue">${(rec.recommended_lineup||[]).length}</div><div class="label">players in optimal lineup</div></div>
     </div>
-    <div class="card p-4 mt-4">
-      <div class="text-gray-400 text-xs uppercase mb-2">Recommended lineup</div>
-      <table class="w-full text-sm"><tbody>${lineupRows || '<tr><td class="text-gray-500 py-2">No roster found for this team — assign players first.</td></tr>'}</tbody></table>
+    <div class="card"><h3>⚡ Urgent alerts</h3>${alerts}</div>
+    <div class="card"><h3>Recommended lineup</h3>
+      ${rows ? `<table><thead><tr><th>Slot</th><th>Player</th><th>Pos</th><th class="r">Proj</th></tr></thead><tbody>${rows}</tbody></table>`
+             : `<div style="color:var(--muted);font-size:13px">No roster yet — after your draft, your picks show up here.</div>`}
     </div>
-    ${envelopeFooter(d)}
-  `;
+    ${metaFooter(d)}`;
 }
 
-// ---------- Draft Room ----------
-async function renderDraft() {
-  $('#content').innerHTML = `<div class="text-gray-400 text-sm">Loading big board…</div>`;
-  const d = await api(`/api/draft/${leagueId()}/big-board?season=${SEASON}&week=${week()}&num_teams=12`);
-  if (d.error) { $('#content').innerHTML = errorCard(d.error); return; }
-  const rows = d.recommendation.board.slice(0, 40).map((p, i) => `
-    <tr class="border-b border-gray-800 hover:bg-gray-800/50">
-      <td class="py-1 pr-3 text-gray-500">${i + 1}</td>
-      <td class="py-1 pr-3">${p.name}</td>
-      <td class="py-1 pr-3 text-gray-500">${p.position}</td>
-      <td class="py-1 pr-3 text-right">${p.median?.toFixed(1)}</td>
-      <td class="py-1 pr-3 text-right text-gray-500">${p.floor?.toFixed(1)} / ${p.ceiling?.toFixed(1)}</td>
-      <td class="py-1 pr-3 text-right font-medium ${p.vorp > 5 ? 'text-emerald-400' : 'text-gray-300'}">${p.vorp?.toFixed(1)}</td>
-      <td class="py-1 text-xs text-gray-500">${p.confidence}</td>
-    </tr>`).join('');
-  $('#content').innerHTML = `
-    <div class="card p-4">
-      <div class="flex justify-between items-center mb-3">
-        <div class="text-gray-400 text-xs uppercase">Draft Big Board — top 40 by VORP</div>
-      </div>
-      <table class="w-full text-sm">
-        <thead class="text-gray-500 text-xs">
-          <tr><th class="text-left py-1">#</th><th class="text-left">Player</th><th class="text-left">Pos</th>
-          <th class="text-right">Median</th><th class="text-right">Floor/Ceil</th><th class="text-right">VORP</th><th>Conf.</th></tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
-    ${envelopeFooter(d)}
-  `;
+// ---------------- Draft Guide (round-by-round) ----------------
+const ROUND_STRATEGY = {
+  1: "Anchor pick. Take the best RB or WR on the board — elite, high-floor volume. Don't get cute.",
+  2: "Second anchor. Best available RB/WR again. Leaving rounds 1-2 with two stud skill players is the goal.",
+  3: "Best value. If an elite TE or top-5 QB slides here, it's worth it. Otherwise keep stacking RB/WR.",
+  4: "Fill your starting lineup. Target whichever of RB2/WR2 you don't have yet.",
+  5: "FLEX ammunition. High-upside RB/WR who could outperform this slot.",
+  6: "QB window opens. If you don't love the QBs left, keep taking skill players.",
+  7: "TE window if you waited. Also great round for upside WRs in good offenses.",
+  8: "Depth with a purpose — handcuffs to your RBs, or breakout candidates.",
+  9: "Upside swings only. Boring veterans are wasted picks this late.",
+  10: "More lottery tickets: rookies, ambiguous backfields, new-team WRs.",
+  11: "QB2/streamer if you need one; otherwise keep swinging on upside.",
+  12: "Bench upside. Last real chance at a player who could matter.",
+  13: "DST — take one with a good early-season schedule.",
+  14: "Kicker. Yes, now. Never earlier.",
+  15: "Final dart throw — injury stashes and pure upside.",
+};
+
+function snakePickInRound(round, slot, teams) {
+  // snake draft: odd rounds go 1->12, even rounds go 12->1
+  return round % 2 === 1 ? slot : (teams - slot + 1);
 }
 
-// ---------- Lineup ----------
+async function getBigBoard() {
+  if (bigBoardCache) return bigBoardCache;
+  const d = await api(`/api/draft/${LEAGUE_ID}/big-board?season=${SEASON}&week=${WEEK}&num_teams=${NUM_TEAMS}`);
+  if (d._error) return d;
+  bigBoardCache = d;
+  return d;
+}
+
+async function renderDraftGuide() {
+  $('#content').innerHTML = loadingBox("Building your round-by-round draft plan…");
+  const d = await getBigBoard();
+  if (d._error) { $('#content').innerHTML = errBox(d._error); return; }
+  const board = d.recommendation.board;
+  const rounds = [];
+  const totalRounds = 15;
+  for (let r = 0; r < totalRounds; r++) {
+    rounds.push(board.slice(r * NUM_TEAMS, (r + 1) * NUM_TEAMS));
+  }
+  const html = rounds.map((players, i) => {
+    const round = i + 1;
+    const pickInRound = snakePickInRound(round, MY_DRAFT_SLOT, NUM_TEAMS);
+    const overall = i * NUM_TEAMS + pickInRound;
+    const chips = players.map(p =>
+      `<span class="chip">${posPill(p.position)} ${p.name} <span class="v">${p.vorp > 0 ? '+' : ''}${p.vorp?.toFixed(1)}</span></span>`
+    ).join('');
+    // position mix summary
+    const mix = {};
+    players.forEach(p => mix[p.position] = (mix[p.position] || 0) + 1);
+    const mixStr = Object.entries(mix).map(([k, v]) => `${v} ${k}`).join(' · ');
+    return `<div class="round">
+      <div class="rhead">
+        <div class="rnum">Round <span class="n">${round}</span> <span style="color:var(--muted);font-size:12px;font-weight:400">· mostly ${mixStr}</span></div>
+      </div>
+      <div class="strategy">💡 ${ROUND_STRATEGY[round] || "Best player available."}</div>
+      <div style="margin-top:8px">${chips}</div>
+      <div class="yourpick">⭐ Your pick this round: #${overall} overall (pick ${pickInRound} of the round)</div>
+    </div>`;
+  }).join('');
+  $('#content').innerHTML = `
+    <div class="card">
+      <h3>🎯 Your draft plan — pick slot ${MY_DRAFT_SLOT} of ${NUM_TEAMS} (snake)</h3>
+      <div style="color:var(--muted);font-size:13px;margin-bottom:12px">
+        Players are grouped into rounds by draft value (VORP = points above a replacement-level starter).
+        The <span style="color:var(--gold)">+number</span> is how much better each player is than what you could
+        get off waivers. Round groupings are a guide, not a law — if a player from an earlier round is somehow
+        still available, that's a value pick.
+      </div>
+      ${html}
+    </div>
+    ${metaFooter(d)}`;
+}
+
+// ---------------- Big Board ----------------
+async function renderBigBoard() {
+  $('#content').innerHTML = loadingBox("Loading the full big board…");
+  const d = await getBigBoard();
+  if (d._error) { $('#content').innerHTML = errBox(d._error); return; }
+  const board = d.recommendation.board.slice(0, 100);
+  let lastVorp = null;
+  const rows = board.map((p, i) => {
+    // draw a tier-break line where VORP drops sharply
+    const breakRow = lastVorp !== null && (lastVorp - p.vorp) > 2.2;
+    lastVorp = p.vorp;
+    return `<tr class="${breakRow ? 'tierbreak' : ''}">
+      <td style="color:var(--muted)">${i + 1}</td>
+      <td><b>${p.name}</b></td><td>${posPill(p.position)}</td>
+      <td class="r">${p.median?.toFixed(1)}</td>
+      <td class="r" style="color:var(--muted)">${p.floor?.toFixed(1)}–${p.ceiling?.toFixed(1)}</td>
+      <td class="r" style="color:${p.vorp > 5 ? 'var(--green)' : 'var(--text)'}"><b>${p.vorp?.toFixed(1)}</b></td>
+    </tr>`;
+  }).join('');
+  $('#content').innerHTML = `
+    <div class="card">
+      <h3>📋 Big board — top 100 by value (gold dashed line = tier break)</h3>
+      <table><thead><tr><th>#</th><th>Player</th><th>Pos</th><th class="r">Proj</th><th class="r">Floor–Ceil</th><th class="r">VORP</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+    </div>
+    ${metaFooter(d)}`;
+}
+
+// ---------------- Start/Sit ----------------
 async function renderLineup() {
-  $('#content').innerHTML = `<div class="text-gray-400 text-sm">Loading lineup optimizer…</div>`;
-  const d = await api(`/api/lineup/optimize?team_id=${teamId()}&season=${SEASON}&week=${week()}`);
-  if (d.error) { $('#content').innerHTML = errorCard(d.error); return; }
+  $('#content').innerHTML = loadingBox("Optimizing your lineup…");
+  const d = await api(`/api/lineup/optimize?team_id=${TEAM_ID}&season=${SEASON}&week=${WEEK}`);
+  if (d._error) { $('#content').innerHTML = errBox(d._error); return; }
+  if (d.recommendation === undefined && d.detail) {
+    $('#content').innerHTML = `<div class="card"><h3>🏈 Start/Sit</h3>
+      <div style="color:var(--muted)">No roster yet — this fills in after you draft players. ⭐</div></div>`;
+    return;
+  }
   const rec = d.recommendation;
-  const starters = (rec.lineup || []).map(p => `
-    <tr class="border-b border-gray-800">
-      <td class="py-1 pr-3 text-gray-400">${p.slot}</td>
-      <td class="py-1 pr-3">${p.name}</td>
-      <td class="py-1 pr-3 text-gray-500">${p.position}</td>
-      <td class="py-1 pr-3 text-xs ${p.status !== 'Active' ? 'text-amber-400' : 'text-gray-500'}">${p.status || ''}</td>
-      <td class="py-1 text-right">${p.median?.toFixed(1)}</td>
-    </tr>`).join('');
-  const wp = rec.win_probability_vs_opponent;
+  const rows = (rec.lineup || []).map(p => `
+    <tr><td style="color:var(--muted)">${p.slot}</td><td><b>${p.name}</b></td>
+    <td>${posPill(p.position)}</td>
+    <td style="color:${p.status !== 'Active' ? 'var(--gold)' : 'var(--muted)'};font-size:12px">${p.status || ''}</td>
+    <td class="r">${p.median?.toFixed(1)}</td></tr>`).join('');
   $('#content').innerHTML = `
-    <div class="grid md:grid-cols-3 gap-4 mb-4">
-      <div class="card p-4"><div class="text-gray-400 text-xs uppercase">Median</div><div class="text-2xl font-bold">${rec.projected_score_median}</div></div>
-      <div class="card p-4"><div class="text-gray-400 text-xs uppercase">Floor (p10) / Ceiling (p90)</div><div class="text-2xl font-bold">${rec.projected_score_floor_p10} / ${rec.projected_score_ceiling_p90}</div></div>
-      <div class="card p-4"><div class="text-gray-400 text-xs uppercase">Win probability</div><div class="text-2xl font-bold">${wp ? (wp.team_a_win_prob * 100).toFixed(0) + '%' : 'n/a (no opponent set)'}</div></div>
+    <div class="grid cols3">
+      <div class="card"><h3>Median</h3><div class="big green">${rec.projected_score_median}</div></div>
+      <div class="card"><h3>Floor / Ceiling</h3><div class="big blue">${rec.projected_score_floor_p10} – ${rec.projected_score_ceiling_p90}</div></div>
+      <div class="card"><h3>Strategy</h3><div style="font-size:13.5px;padding-top:6px">${rec.why_this_lineup}</div></div>
     </div>
-    <div class="card p-4 mb-4">
-      <div class="text-gray-400 text-xs uppercase mb-2">Why this lineup?</div>
-      <p class="text-sm text-gray-300">${rec.why_this_lineup}</p>
-      ${(rec.notes || []).map(n => `<p class="text-xs text-gray-500 mt-2">${n}</p>`).join('')}
-    </div>
-    <div class="card p-4">
-      <div class="text-gray-400 text-xs uppercase mb-2">Starting lineup</div>
-      <table class="w-full text-sm"><tbody>${starters || '<tr><td class="text-gray-500 py-2">No roster found.</td></tr>'}</tbody></table>
-    </div>
-    ${envelopeFooter(d)}
-  `;
+    <div class="card"><h3>Optimal lineup</h3>
+      <table><thead><tr><th>Slot</th><th>Player</th><th>Pos</th><th>Status</th><th class="r">Proj</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+    ${metaFooter(d)}`;
 }
 
-// ---------- Waiver ----------
-async function renderWaiver() {
+// ---------------- Live News ----------------
+async function renderNews() {
+  $('#content').innerHTML = loadingBox("Checking the wire…");
+  const d = await api(`/api/league/${LEAGUE_ID}/dashboard?team_id=${TEAM_ID}&season=${SEASON}&week=${WEEK}`);
+  if (d._error) { $('#content').innerHTML = errBox(d._error); return; }
+  const alerts = (d.recommendation.urgent_alerts || []);
+  const items = alerts.map(a => {
+    const confirmed = a.body && a.body.includes("CONFIRMED") && !a.body.includes("UNCONFIRMED");
+    return `<div class="news-item ${confirmed ? 'confirmed' : 'rumor'}">
+      <div class="nh">${a.headline}<span class="tag ${confirmed ? 'ok' : 'rumor'}">${confirmed ? 'CONFIRMED' : 'UNCONFIRMED'}</span></div>
+      <div class="nb">${a.body}</div>
+      <div class="nt">${a.created_at ? new Date(a.created_at).toLocaleString() : ''}</div>
+    </div>`;
+  }).join('');
   $('#content').innerHTML = `
-    <div class="card p-4 mb-4">
-      <div class="text-gray-400 text-xs uppercase mb-2">Free agent player IDs (comma-separated, mock DB has players with ids 1-416+)</div>
-      <div class="flex gap-2">
-        <input id="faIds" class="flex-1 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm" value="100,101,102,103,104,105">
-        <button id="runWaiver" class="bg-blue-600 hover:bg-blue-500 px-4 py-1 rounded text-sm">Run</button>
-      </div>
+    <div class="card">
+      <h3>📰 Live news wire</h3>
+      ${items || `<div style="color:var(--muted);font-size:13px">
+        No news items yet. In mock mode the wire is quiet until events are injected —
+        once real data feeds are connected, injury reports, depth-chart moves, and
+        breaking news land here automatically with confirmed/unconfirmed labels.</div>`}
+      <button class="btn ghost" style="margin-top:12px" onclick="simulateNews()">🧪 Simulate a breaking-news event (demo)</button>
     </div>
-    <div id="waiverResults" class="text-gray-500 text-sm">Enter free agent IDs and click Run.</div>
-  `;
-  $('#runWaiver').onclick = async () => {
-    const ids = $('#faIds').value.split(',').map(s => parseInt(s.trim())).filter(Boolean);
-    $('#waiverResults').innerHTML = `<div class="text-gray-400">Computing…</div>`;
-    const d = await api(`/api/waiver/recommend`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ team_id: parseInt(teamId()), league_id: parseInt(leagueId()), season: SEASON,
-                              week: parseInt(week()), free_agent_player_ids: ids, faab_remaining: 100 })
-    });
-    if (d.error) { $('#waiverResults').innerHTML = errorCard(d.error); return; }
-    const rows = d.recommendation.recommended_adds.map(p => `
-      <tr class="border-b border-gray-800">
-        <td class="py-1 pr-3">${p.name}</td>
-        <td class="py-1 pr-3 text-gray-500">${p.position}</td>
-        <td class="py-1 pr-3 text-right">${p.rest_of_season_value}</td>
-        <td class="py-1 pr-3 text-right text-emerald-400">${p.suggested_faab_bid}</td>
-        <td class="py-1 pr-3 text-right text-gray-500">${p.conservative_faab_bid} / ${p.aggressive_faab_bid}</td>
-        <td class="py-1 text-right text-xs text-gray-500">${(p.estimated_claim_probability_by_others * 100).toFixed(0)}%</td>
-      </tr>`).join('');
-    $('#waiverResults').innerHTML = `
-      <div class="card p-4">
-        <div class="text-gray-400 text-xs uppercase mb-2">Recommended adds (ranked by rest-of-season value)</div>
-        <table class="w-full text-sm">
-          <thead class="text-gray-500 text-xs"><tr><th class="text-left">Player</th><th class="text-left">Pos</th>
-          <th class="text-right">ROS value</th><th class="text-right">Suggested FAAB</th><th class="text-right">Cons./Aggr.</th><th class="text-right">Claim odds</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-      ${envelopeFooter(d)}
-    `;
-  };
+    ${metaFooter(d)}`;
 }
 
-// ---------- Trade ----------
-async function renderTrade() {
-  $('#content').innerHTML = `
-    <div class="card p-4 mb-4">
-      <div class="text-gray-400 text-xs uppercase mb-2">Simple 2-team trade (player IDs)</div>
-      <div class="grid md:grid-cols-2 gap-3 text-sm">
-        <div>
-          <label class="text-gray-500 text-xs">Team A id</label>
-          <input id="teamA" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 mb-2" value="1">
-          <label class="text-gray-500 text-xs">Team A sends (comma ids)</label>
-          <input id="aSends" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1" value="3">
-        </div>
-        <div>
-          <label class="text-gray-500 text-xs">Team B id</label>
-          <input id="teamB" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 mb-2" value="2">
-          <label class="text-gray-500 text-xs">Team B sends (comma ids)</label>
-          <input id="bSends" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1" value="100">
-        </div>
-      </div>
-      <button id="runTrade" class="mt-3 bg-blue-600 hover:bg-blue-500 px-4 py-1 rounded text-sm">Analyze trade</button>
-    </div>
-    <div id="tradeResults" class="text-gray-500 text-sm">Fill in both sides and analyze.</div>
-  `;
-  $('#runTrade').onclick = async () => {
-    const teamAId = parseInt($('#teamA').value), teamBId = parseInt($('#teamB').value);
-    const aSends = $('#aSends').value.split(',').map(s => parseInt(s.trim())).filter(Boolean);
-    const bSends = $('#bSends').value.split(',').map(s => parseInt(s.trim())).filter(Boolean);
-    const payload = { league_id: parseInt(leagueId()), season: SEASON, week: parseInt(week()),
-      team_assets: { [teamAId]: { sends: aSends, receives: bSends }, [teamBId]: { sends: bSends, receives: aSends } } };
-    $('#tradeResults').innerHTML = `<div class="text-gray-400">Computing…</div>`;
-    const d = await api(`/api/trade/analyze`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-    if (d.error) { $('#tradeResults').innerHTML = errorCard(d.error); return; }
-    const rec = d.recommendation;
-    const teamCards = Object.values(rec.per_team_impact).map(t => `
-      <div class="card p-4">
-        <div class="text-gray-400 text-xs uppercase mb-1">Team ${t.team_id}</div>
-        <div class="text-sm">Starter value: <b>${t.starter_value_before}</b> → <b>${t.starter_value_after}</b></div>
-        <div class="text-xl font-bold ${t.starter_value_delta >= 0 ? 'text-emerald-400' : 'text-red-400'}">${t.starter_value_delta >= 0 ? '+' : ''}${t.starter_value_delta}</div>
-      </div>`).join('');
-    $('#tradeResults').innerHTML = `
-      <div class="card p-4 mb-4"><div class="text-gray-400 text-xs uppercase mb-1">Verdict</div><div class="text-lg">${rec.verdict}</div></div>
-      <div class="grid md:grid-cols-2 gap-4 mb-4">${teamCards}</div>
-      ${rec.counteroffer_suggestions.length ? `<div class="card p-4 mb-4"><div class="text-gray-400 text-xs uppercase mb-1">Counteroffer ideas</div><ul class="list-disc ml-4 text-sm">${rec.counteroffer_suggestions.map(c => `<li>${c}</li>`).join('')}</ul></div>` : ''}
-      ${envelopeFooter(d)}
-    `;
-  };
+async function simulateNews() {
+  $('#content').innerHTML = loadingBox("Injecting a demo news event…");
+  // pick a player from the big board so the name is real (mock-real, anyway)
+  const b = await getBigBoard();
+  if (b._error) { $('#content').innerHTML = errBox(b._error); return; }
+  const star = b.recommendation.board[Math.floor(Math.random() * 10)];
+  await api(`/api/news/mock-event`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ player_id: star.player_id, event_type: 'questionable',
+      headline: `${star.name} (${star.position}) listed QUESTIONABLE`,
+      body: 'Limited in practice. Demo event injected from the dashboard.',
+      reliability_tier: 'primary', confirmed: true })
+  });
+  await api(`/api/news/process-pending?season=${SEASON}&week=${WEEK}`, { method: 'POST' });
+  renderNews();
 }
 
-// ---------- League Intel ----------
+// ---------------- League ----------------
 async function renderLeague() {
-  $('#content').innerHTML = `<div class="text-gray-400 text-sm">Loading season simulation…</div>`;
-  const d = await api(`/api/league/${leagueId()}/season-simulation?n_sims=1000`);
-  if (d.error) { $('#content').innerHTML = errorCard(d.error); return; }
+  $('#content').innerHTML = loadingBox("Simulating the season…");
+  const d = await api(`/api/league/${LEAGUE_ID}/season-simulation?n_sims=1000`);
+  if (d._error) { $('#content').innerHTML = errBox(d._error); return; }
   const rows = d.recommendation.teams
     .sort((a, b) => b.playoff_probability - a.playoff_probability)
-    .map(t => `
-    <tr class="border-b border-gray-800">
-      <td class="py-1 pr-3">${t.team_name}</td>
-      <td class="py-1 pr-3 text-right">${(t.playoff_probability * 100).toFixed(1)}%</td>
-      <td class="py-1 text-right text-gray-500">${(t.championship_probability_proxy * 100).toFixed(1)}%</td>
+    .map((t, i) => `<tr>
+      <td style="color:var(--muted)">${i + 1}</td>
+      <td><b>${t.team_name === 'Estrellita G' ? '⭐ ' : ''}${t.team_name}</b></td>
+      <td class="r">${(t.playoff_probability * 100).toFixed(1)}%</td>
+      <td class="r" style="color:var(--muted)">${(t.championship_probability_proxy * 100).toFixed(1)}%</td>
     </tr>`).join('');
   $('#content').innerHTML = `
-    <div class="card p-4">
-      <div class="text-gray-400 text-xs uppercase mb-2">Playoff & championship odds (simulated)</div>
-      <table class="w-full text-sm">
-        <thead class="text-gray-500 text-xs"><tr><th class="text-left">Team</th><th class="text-right">Playoff %</th><th class="text-right">Championship % (proxy)</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
+    <div class="card"><h3>🏆 Playoff & championship odds (1,000 season simulations)</h3>
+      <table><thead><tr><th>#</th><th>Team</th><th class="r">Playoffs</th><th class="r">Championship*</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+      <div style="color:var(--muted);font-size:11.5px;margin-top:8px">*simplified estimate, not a full playoff-bracket simulation</div>
     </div>
-    ${envelopeFooter(d)}
-  `;
+    ${metaFooter(d)}`;
 }
 
-const renderers = { dashboard: renderDashboard, draft: renderDraft, lineup: renderLineup,
-                     waiver: renderWaiver, trade: renderTrade, league: renderLeague };
-
-document.querySelectorAll('.tab-btn').forEach(btn => {
+// ---------------- tab wiring ----------------
+const renderers = { dashboard: renderDashboard, draftguide: renderDraftGuide, bigboard: renderBigBoard,
+                     lineup: renderLineup, news: renderNews, league: renderLeague };
+document.querySelectorAll('.tab').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     renderers[btn.dataset.tab]();
   });
 });
-
 renderDashboard();
 </script>
 </body>
